@@ -1,0 +1,22 @@
+upstream thracian_tombs {
+    server arches:8000;
+}
+
+server {
+
+    listen 443 ssl;
+    server_name www.thracian-tombs.info;
+    ssl_certificate /etc/nginx/certs/thracian-tombs.info.crs;
+    ssl_certificate_key /etc/nginx/certs/thracian-tombs.info.key;
+    
+    location / {
+        proxy_pass http://thracian_tombs;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+    location /static/ {
+        alias /home/app/arches/static/;
+    }
+
+}

@@ -1,0 +1,11 @@
+FROM nginx:1.19.0-alpine
+
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d
+COPY ./certs/ /etc/nginx/certs/
+
+RUN apk add --no-cache certbot
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT [ "../entrypoint.sh"  ]

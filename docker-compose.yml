@@ -1,0 +1,101 @@
+version: "3.3"
+   
+services:
+  nginx:
+    container_name: nginx-deploy
+    build: ./nginx
+    image: nginx/thracian-tombs
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - arches_static:/home/app/arches/static
+      - arches_uploads:/home/app/arches/thracian_tombs/uploadedfiles
+    depends_on:
+      - arches
+    restart: "on-failure"
+
+  arches:
+    container_name: arches-deploy
+    restart: always
+    build: .
+    image: arches/thracian-tombs 
+    command: sh -c "python manage.py collectstatic --noinput && gunicorn thracian_tombs.wsgi:application --bind 0.0.0.0:8000" 
+      #"python manage.py setup_db --force"
+      #"python manage.py packages -o load_package -s pkg -db
+      #"python manage.py collectstatic --noinput && gunicorn thracian_tombs.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      #- .:/arches:rw
+      - arches_static:/home/app/arches/static
+      - arches_uploads:/home/app/arches/thracian_tombs/uploadedfiles
+      - ./thracian_tombs:/home/app/arches/thracian_tombs
+      - ./pkg:/home/app/arches/pkg
+    environment:
+      - PGUSERNAME=postgres
+      - PGPASSWORD=postgis
+      - PGDBNAME=arches
+      - PGHOST=db
+      - PGPORT=5432
+      - COUCHDB_HOST=couchdb
+      - COUCHDB_PORT=5984
+      - COUCHDB_USER=admin
+      - COUCHDB_PASS=password
+      - ESHOST=elasticsearch
+      - ESPORT=9200
+      - DJANGO_DEBUG=False
+      - DOMAIN_NAMES=thracian-tombs.info www.thracian-tombs.info bh-arches.home
+      - PYTHONUNBUFFERED=0
+      - TZ=EET
+      - ALLOWED_HOSTS=thracian-tombs.info www.thracian-tombs.info bh-arches.home
+
+    depends_on:
+      - db
+      - couchdb
+      - elasticsearch
+  
+  db:
+    container_name: db-deploy
+    image: kartoza/postgis:12.0
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-log:/var/log/postgresql
+      - ./init-unix.sql:/docker-entrypoint-initdb.d/init.sql # to set up the DB template
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgis
+      - POSTGRES_DB=arches
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,postgis_topology
+      - TZ=EET
+
+  couchdb:
+    container_name: couchdb-deploy
+    image: couchdb:2.1.1
+    restart: always
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+    volumes:
+      - couchdb-data:/usr/local/var/lib/couchdb
+      - couchdb-log:/usr/local/var/log/couchdb
+
+  elasticsearch:
+    container_name: elasticsearch-deploy
+    image: elasticsearch:7.5.1
+    restart: always
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    environment:
+      - TZ=EET # Bulgaria
+      - discovery.type=single-node
+      - discovery.seed_hosts=
+      - "ES_JAVA_OPTS=-Xms400m -Xmx400m"
+
+volumes:
+    couchdb-data:
+    couchdb-log:
+    postgres-data:
+    postgres-log:
+    elasticsearch-data:
+    arches_static:
+    arches_uploads:
