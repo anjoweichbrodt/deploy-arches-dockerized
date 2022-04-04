@@ -1,0 +1,13 @@
+docker run \
+  -e SSHFS='backupuser@backupserver:/path/to/repo' \
+  -e SSHFS_IDENTITY_FILE=/root/ssh-key/key \
+  -e SSHFS_GEN_IDENTITY_FILE=1 \
+  -e BORG_PASSPHRASE=my-secret-pw \
+  -e BACKUP_DIRS=/borg/data \
+  -e COMPRESSION=lz4 \
+  -e PRUNE=1 \
+  -v borg-config:/root \
+  -v /home/arches/postgres-data:/borg/data/postgres-data:ro \
+  --cap-add SYS_ADMIN --device /dev/fuse --security-opt label:disable \
+  --name borg-backup \
+  pschiffe/borg
